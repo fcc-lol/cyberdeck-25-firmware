@@ -1,0 +1,16 @@
+[Unit]
+Description=Cyberdeck 25 Firmware Socket Server
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/fcc-017/Desktop/cyberdeck-25-firmware
+ExecStart=/home/fcc-017/Desktop/cyberdeck-25-firmware/venv/bin/python3 /home/fcc-017/Desktop/cyberdeck-25-firmware/socket_server.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

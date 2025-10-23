@@ -369,7 +369,7 @@ def handle_disconnect():
 
 @app.route('/')
 def index():
-    return "Firmware Socket Server - Connect via Socket.IO client", 200, {'Content-Type': 'text/plain'}
+    return "Firmware Socket Server - Connect via Socket.IO client", 200
 
 def signal_handler(sig, frame):
     """Handle Ctrl+C gracefully"""

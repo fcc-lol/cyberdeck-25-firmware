@@ -155,6 +155,10 @@ class RotaryEncoder:
                         else:
                             self.counter -= 1  # Counter-clockwise
                     
+                    # Prevent counter from going negative
+                    if self.counter < 0:
+                        self.counter = 0
+                    
                     self.last_encoder_time = current_time
                 
                 # Always update last A state to track changes

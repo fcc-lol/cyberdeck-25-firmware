@@ -22,11 +22,11 @@ class SimulatorServer:
         self.connected_clients = 0
         
         # State tracking
-        self.key_active = True  # Default to released (True)
+        self.key_active = True  # Default to active (True)
         self.switches = {
-            'green': True,   # Default to released (True)
-            'blue': True,
-            'red': True
+            'red': True,     # Default to active (True)
+            'green': True,
+            'blue': True
         }
         self.encoders = {
             1: 0,
@@ -55,6 +55,9 @@ class SimulatorServer:
     def emit_encoder_change(self, encoder_id, delta):
         """Emit encoder change event"""
         self.encoders[encoder_id] += delta
+        # Prevent encoder from going negative
+        if self.encoders[encoder_id] < 0:
+            self.encoders[encoder_id] = 0
         direction = "right" if delta > 0 else "left"
         self.socketio.emit('encoder_change', {
             'encoder_id': encoder_id,
@@ -117,6 +120,7 @@ def draw_ui(stdscr, server):
     curses.init_pair(3, curses.COLOR_RED, curses.COLOR_BLACK)
     curses.init_pair(4, curses.COLOR_YELLOW, curses.COLOR_BLACK)
     curses.init_pair(5, curses.COLOR_CYAN, curses.COLOR_BLACK)
+    curses.init_pair(6, curses.COLOR_WHITE, curses.COLOR_BLACK)
     
     def safe_addstr(y, x, text, attr=0):
         """Safely add string only if it fits on screen"""
@@ -149,32 +153,28 @@ def draw_ui(stdscr, server):
         # Connection status
         clients = server.connected_clients
         status = f"{clients} CLIENT{'S' if clients != 1 else ''} CONNECTED"
-        color = curses.color_pair(1) if clients > 0 else curses.color_pair(4)
+        color = curses.color_pair(1) if clients > 0 else curses.color_pair(3)
         safe_addstr(1, (width - len(status)) // 2, status, color | curses.A_BOLD)
         
         line = 3
         
-        # Instructions header
-        safe_addstr(line, 2, "CONTROLS:", curses.A_BOLD | curses.A_UNDERLINE)
-        line += 2
-        
         # Key button
-        safe_addstr(line, 2, "Main Button:", curses.A_BOLD)
+        safe_addstr(line, 2, "Side Key:", curses.A_BOLD)
         line += 1
-        key_status = "RELEASED" if server.key_active else "PRESSED"
-        key_color = curses.color_pair(1) if server.key_active else curses.color_pair(3)
-        safe_addstr(line, 4, f"[K] Toggle Key - Current: {key_status}", key_color)
+        key_status = "ACTIVE" if server.key_active else "INACTIVE"
+        key_color = curses.color_pair(6) | curses.A_BOLD if server.key_active else curses.color_pair(6) | curses.A_DIM
+        safe_addstr(line, 4, f"[K] Toggle Key = {key_status}", key_color)
         line += 2
         
         # Switches
         safe_addstr(line, 2, "Switches:", curses.A_BOLD)
         line += 1
         for i, (color_name, active) in enumerate(server.switches.items()):
-            status = "RELEASED" if active else "PRESSED"
-            color = curses.color_pair(1) if active else curses.color_pair(3)
-            key = ['G', 'B', 'R'][i]
+            status = "ACTIVE" if active else "INACTIVE"
+            color = curses.color_pair(6) | curses.A_BOLD if active else curses.color_pair(6) | curses.A_DIM
+            key = ['R', 'G', 'B'][i]
             color_display = color_name.upper()
-            safe_addstr(line, 4, f"[{key}] {color_display:6s} - {status}", color)
+            safe_addstr(line, 4, f"[{key}] {color_display:5s} = {status}", color)
             line += 1
         line += 1
         
@@ -191,7 +191,7 @@ def draw_ui(stdscr, server):
         
         for enc_id, keys, label in encoder_keys:
             value = server.encoders[int(enc_id)]
-            safe_addstr(line, 4, f"[{keys}] {label:10s} - Value: {value:4d}", curses.color_pair(5))
+            safe_addstr(line, 4, f"[{keys}] {label:5s} = {value:3d}", curses.color_pair(6))
             line += 1
         
         line += 1
@@ -199,15 +199,11 @@ def draw_ui(stdscr, server):
         # Encoder buttons
         safe_addstr(line, 2, "Encoder Buttons:", curses.A_BOLD)
         line += 1
-        safe_addstr(line, 4, "[3][E][D][C] Reset Encoder 1/2/3/4", curses.color_pair(4))
-        line += 2
-        
-        # Arrow key alternative
-        safe_addstr(line, 2, "Arrows: UP/DOWN=Enc1, LEFT/RIGHT=Enc2", curses.A_DIM)
+        safe_addstr(line, 4, "[3][E][D][C] Reset Encoder 1/2/3/4", curses.color_pair(6))
         line += 2
         
         # Exit
-        safe_addstr(line, 2, "[ESC] Exit", curses.color_pair(3) | curses.A_BOLD)
+        safe_addstr(line, 2, "[ESC] Exit", curses.color_pair(6) | curses.A_DIM)
         
         stdscr.refresh()
         
@@ -220,26 +216,26 @@ def draw_ui(stdscr, server):
             elif key == ord('k') or key == ord('K'):
                 # Toggle key button
                 server.emit_key_change(not server.key_active)
+            elif key == ord('r') or key == ord('R'):
+                # Toggle red switch
+                server.emit_switch_change('red', not server.switches['red'])
             elif key == ord('g') or key == ord('G'):
                 # Toggle green switch
                 server.emit_switch_change('green', not server.switches['green'])
             elif key == ord('b') or key == ord('B'):
                 # Toggle blue switch
                 server.emit_switch_change('blue', not server.switches['blue'])
-            elif key == ord('r') or key == ord('R'):
-                # Toggle red switch
-                server.emit_switch_change('red', not server.switches['red'])
             # Encoder 1
-            elif key == ord('1') or key == curses.KEY_DOWN:
+            elif key == ord('1'):
                 server.emit_encoder_change(1, -1)
-            elif key == ord('2') or key == curses.KEY_UP:
+            elif key == ord('2'):
                 server.emit_encoder_change(1, 1)
             elif key == ord('3'):
                 server.emit_encoder_button_press(1)
             # Encoder 2
-            elif key == ord('q') or key == ord('Q') or key == curses.KEY_LEFT:
+            elif key == ord('q') or key == ord('Q'):
                 server.emit_encoder_change(2, -1)
-            elif key == ord('w') or key == ord('W') or key == curses.KEY_RIGHT:
+            elif key == ord('w') or key == ord('W'):
                 server.emit_encoder_change(2, 1)
             elif key == ord('e') or key == ord('E'):
                 server.emit_encoder_button_press(2)
@@ -310,7 +306,7 @@ def main():
         print("\nRunning in headless mode (no interactive terminal detected)")
         print("\nControls:")
         print("  Press K in terminal for key toggle")
-        print("  Press G/B/R for switches")
+        print("  Press R/G/B for switches")
         print("  Press 1/2, Q/W, A/S, Z/X for encoders")
         print("  Press Ctrl+C to stop")
         print()

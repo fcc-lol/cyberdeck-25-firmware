@@ -1,2 +1,4 @@
-flask-socketio==5.3.4
+flask-socketio==5.4.1
+python-socketio==5.14.2
 RPi.GPIO==0.7.1
+

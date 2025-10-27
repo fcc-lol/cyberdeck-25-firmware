@@ -13,6 +13,6 @@ fi
 
 # Run socket firmware with sudo using the venv python
 echo "Starting socket-enabled firmware monitor..."
-echo "Socket server will run on http://localhost:5000"
+echo "Socket server will run on http://localhost:3001"
 echo ""
 sudo venv/bin/python3 socket_server.py

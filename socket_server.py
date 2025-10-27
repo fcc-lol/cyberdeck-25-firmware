@@ -391,7 +391,7 @@ def main():
     print("Switches: GPIO 18, 20, 21")
     print("Encoders: 4 rotary encoders with buttons")
     print("\nSocket events will be emitted on every input change")
-    print("Socket server running on http://localhost:5000")
+    print("Socket server running on http://localhost:3001")
     print("Connect your client to receive real-time events")
     print("Press Ctrl+C to stop")
     print()
@@ -407,7 +407,7 @@ def main():
     monitor_thread.start()
     
     # Start Flask-SocketIO server
-    socketio.run(app, host='0.0.0.0', port=5000, debug=False, allow_unsafe_werkzeug=True)
+    socketio.run(app, host='0.0.0.0', port=3001, debug=False, allow_unsafe_werkzeug=True)
 
 if __name__ == "__main__":
     main()
